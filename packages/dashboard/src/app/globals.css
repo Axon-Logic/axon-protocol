@@ -3,5 +3,26 @@
 @tailwind utilities;
 
 body {
-  @apply bg-axon-900 text-gray-100;
+  @apply bg-axon-900 text-gray-100 transition-colors;
+}
+
+html.light body {
+  background-color: #ffffff;
+  color: #111827;
+}
+
+html.light .bg-axon-800 {
+  background-color: #f3f4f6;
+}
+
+html.light .border-axon-700 {
+  border-color: #e5e7eb;
+}
+
+html.light .text-gray-400 {
+  color: #6b7280;
+}
+
+html.light .text-gray-300 {
+  color: #374151;
 }

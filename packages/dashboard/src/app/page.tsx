@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useWallet } from "@/context/WalletContext";
 import AgentCard from "@/components/AgentCard";
 import StatCard from "@/components/StatCard";
+import SkeletonCard from "@/components/SkeletonCard";
 import type { AgentRecord } from "@axon-protocol/sdk";
 
 type AgentEntry = { address: string; record: AgentRecord };
@@ -52,7 +53,11 @@ export default function DashboardPage() {
       <div>
         <h2 className="text-lg font-semibold mb-3">Agents</h2>
         {loading ? (
-          <p className="text-gray-500 text-sm">Loading…</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
         ) : agents.length === 0 ? (
           <p className="text-gray-500 text-sm">No agents registered yet.</p>
         ) : (
