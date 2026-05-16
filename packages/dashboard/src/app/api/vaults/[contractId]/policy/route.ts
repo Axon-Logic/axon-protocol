@@ -1,21 +1,18 @@
 import { NextResponse } from "next/server";
 
-// Policy updates require a signed transaction from the admin key.
-// This route proxies to the backend API which holds the admin keypair.
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+
 export async function POST(
   req: Request,
   { params }: { params: { contractId: string } },
 ) {
-  const body = await req.json();
   try {
-    const res = await fetch(
-      `${process.env.API_URL ?? "http://localhost:3000"}/vaults/${params.contractId}/policy`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      },
-    );
+    const body = await req.json();
+    const res = await fetch(`${API_URL}/policies/set`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contractId: params.contractId, ...body }),
+    });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch (err) {

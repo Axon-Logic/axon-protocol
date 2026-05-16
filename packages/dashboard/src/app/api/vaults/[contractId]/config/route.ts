@@ -1,17 +1,15 @@
 import { NextResponse } from "next/server";
-import { AgentVaultClient, NETWORKS } from "@axon-protocol/sdk";
 
-function client(contractId: string) {
-  return new AgentVaultClient(contractId, NETWORKS[process.env.STELLAR_NETWORK ?? "testnet"]);
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
 
 export async function GET(
   _req: Request,
   { params }: { params: { contractId: string } },
 ) {
   try {
-    const config = await client(params.contractId).getConfig();
-    return NextResponse.json(config ?? null);
+    const res = await fetch(`${API_URL}/vaults/${params.contractId}/config`);
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
