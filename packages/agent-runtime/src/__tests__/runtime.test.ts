@@ -11,6 +11,10 @@ jest.mock("@axon-protocol/sdk", () => ({
 
 jest.mock("@stellar/stellar-sdk", () => ({
   Keypair: { fromSecret: jest.fn(() => ({ publicKey: () => "GPUB" })) },
+  StrKey: {
+    isValidEd25519PublicKey: jest.fn((v: string) => v.startsWith("G")),
+    isValidContract: jest.fn((v: string) => v.startsWith("C")),
+  },
 }));
 
 const ctx: AgentContext = {
@@ -118,5 +122,23 @@ describe("Scheduler", () => {
     scheduler.start();
     await new Promise((r) => setTimeout(r, 80));
     expect(executed).toContain("t-exec");
+  });
+
+  it("throws on invalid agentAddress", () => {
+    expect(() => new Scheduler({ ...ctx, agentAddress: "INVALID" })).toThrow("invalid agentAddress");
+  });
+
+  it("throws on invalid vaultContractId", () => {
+    expect(() => new Scheduler({ ...ctx, vaultContractId: "INVALID" })).toThrow("invalid vaultContractId");
+  });
+
+  it("throws on invalid secretKey", () => {
+    const { Keypair } = require("@stellar/stellar-sdk");
+    Keypair.fromSecret.mockImplementationOnce(() => { throw new Error("bad key"); });
+    expect(() => new Scheduler({ ...ctx, secretKey: "BADSECRET" })).toThrow("invalid secretKey");
+  });
+
+  it("throws on invalid network", () => {
+    expect(() => new Scheduler({ ...ctx, network: "devnet" })).toThrow("invalid network");
   });
 });

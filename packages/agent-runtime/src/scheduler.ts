@@ -1,4 +1,5 @@
 import type { AgentTask, AgentContext } from "./types.js";
+import { validateAgentContext } from "./types.js";
 import { AgentRuntime } from "./runtime.js";
 
 /**
@@ -7,12 +8,13 @@ import { AgentRuntime } from "./runtime.js";
  */
 export class Scheduler {
   private running = false;
-  protected runtime: AgentRuntime;
+  public runtime: AgentRuntime;
 
   constructor(
     private ctx: AgentContext,
     private pollIntervalMs = 5000,
   ) {
+    validateAgentContext(ctx);
     this.runtime = new AgentRuntime(ctx);
   }
 
