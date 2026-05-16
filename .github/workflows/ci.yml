@@ -36,9 +36,37 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: contracts
+          key: contracts-release-${{ hashFiles('contracts/Cargo.lock') }}
       - run: cargo fmt --all -- --check
         working-directory: contracts
       - run: cargo clippy --all-targets -- -D warnings
         working-directory: contracts
       - run: cargo test
         working-directory: contracts
+
+  testnet-integration:
+    name: Testnet integration tests
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts
+          key: contracts-release-${{ hashFiles('contracts/Cargo.lock') }}
+      - name: Build contracts
+        run: cargo build --release --target wasm32-unknown-unknown
+        working-directory: contracts
+      - name: Install stellar CLI
+        run: cargo install --locked stellar-cli
+      - name: Run integration tests
+        run: cargo test
+        working-directory: contracts
+        env:
+          STELLAR_NETWORK: testnet
+          STELLAR_RPC_URL: ${{ secrets.STELLAR_RPC_URL }}
+          STELLAR_NETWORK_PASSPHRASE: ${{ secrets.STELLAR_NETWORK_PASSPHRASE }}
+          ADMIN_SECRET_KEY: ${{ secrets.ADMIN_SECRET_KEY }}
