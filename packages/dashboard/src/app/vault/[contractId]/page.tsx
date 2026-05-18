@@ -2,14 +2,18 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import StatCard from "@/components/StatCard";
+import PolicyCard from "@/components/PolicyCard";
 import Link from "next/link";
 
+type Policy = { maxPerTx: string; maxPerPeriod: string; periodLedgers: number; allowlist: string[]; spent?: string };
 type VaultData = { balance: string; config: { owner: string; agent: string } | null };
 
 export default function VaultPage() {
   const { contractId } = useParams<{ contractId: string }>();
   const [vault, setVault] = useState<VaultData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [policy, setPolicy] = useState<Policy | null>(null);
+  const [policyLoading, setPolicyLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
@@ -19,6 +23,12 @@ export default function VaultPage() {
       .then(([{ balance }, config]) => setVault({ balance, config }))
       .catch(console.error)
       .finally(() => setLoading(false));
+
+    fetch(`/api/vaults/${contractId}/policy`)
+      .then((r) => r.json())
+      .then((data) => setPolicy(data?.error ? null : data))
+      .catch(() => setPolicy(null))
+      .finally(() => setPolicyLoading(false));
   }, [contractId]);
 
   if (loading) return <p className="text-gray-500 text-sm">Loading vault…</p>;
@@ -65,6 +75,15 @@ export default function VaultPage() {
         >
           Manage Policy
         </Link>
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="font-semibold text-gray-300">Current Policy</h2>
+        {policyLoading ? (
+          <div className="animate-pulse h-32 bg-axon-700 rounded-lg" />
+        ) : (
+          <PolicyCard policy={policy} />
+        )}
       </div>
     </div>
   );
