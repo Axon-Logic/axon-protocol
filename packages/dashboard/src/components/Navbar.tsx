@@ -1,3 +1,4 @@
+"use client";
 import Link from "next/link";
 import { useWallet } from "@/context/WalletContext";
 import ThemeToggle from "./ThemeToggle";
