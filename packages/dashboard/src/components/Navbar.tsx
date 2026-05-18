@@ -20,6 +20,9 @@ export default function Navbar() {
         <Link href="/policy" className="text-sm text-gray-400 hover:text-white transition-colors">
           Policies
         </Link>
+        <Link href="/agents/register" className="text-sm text-gray-400 hover:text-white transition-colors">
+          Register Agent
+        </Link>
       </div>
 
       <div className="flex items-center gap-4">
