@@ -2,14 +2,18 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import StatCard from "@/components/StatCard";
+import SpendHistoryTable from "@/components/SpendHistoryTable";
 import Link from "next/link";
 
+type SpendEvent = { date: string; recipient: string; amount: string; memo: string; txHash: string };
 type VaultData = { balance: string; config: { owner: string; agent: string } | null };
 
 export default function VaultPage() {
   const { contractId } = useParams<{ contractId: string }>();
   const [vault, setVault] = useState<VaultData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [history, setHistory] = useState<SpendEvent[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
@@ -19,6 +23,12 @@ export default function VaultPage() {
       .then(([{ balance }, config]) => setVault({ balance, config }))
       .catch(console.error)
       .finally(() => setLoading(false));
+
+    fetch(`/api/vaults/${contractId}/spend-history`)
+      .then((r) => r.json())
+      .then((data) => setHistory(Array.isArray(data) ? data.slice(0, 20) : []))
+      .catch(() => setHistory([]))
+      .finally(() => setHistoryLoading(false));
   }, [contractId]);
 
   if (loading) return <p className="text-gray-500 text-sm">Loading vault…</p>;
@@ -65,6 +75,19 @@ export default function VaultPage() {
         >
           Manage Policy
         </Link>
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="font-semibold text-gray-300">Spend History</h2>
+        {historyLoading ? (
+          <div className="animate-pulse space-y-2">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-8 bg-axon-700 rounded" />
+            ))}
+          </div>
+        ) : (
+          <SpendHistoryTable events={history} />
+        )}
       </div>
     </div>
   );
