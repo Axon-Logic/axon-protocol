@@ -7,7 +7,7 @@ import { AgentRuntime } from "./runtime.js";
  */
 export class Scheduler {
   private running = false;
-  protected runtime: AgentRuntime;
+  readonly runtime: AgentRuntime;
 
   constructor(
     private ctx: AgentContext,

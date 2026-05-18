@@ -1,11 +1,5 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import {
-  isConnected,
-  getPublicKey,
-  requestAccess,
-  getNetworkDetails,
-} from "@stellar/freighter-api";
 
 type WalletState = {
   address: string | null;
@@ -31,18 +25,22 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [connecting, setConnecting] = useState(false);
 
   useEffect(() => {
-    isConnected().then(async (ok) => {
-      if (ok) {
-        const [pub, net] = await Promise.all([getPublicKey(), getNetworkDetails()]);
-        setAddress(pub);
-        setNetwork(net.network);
-      }
+    // Lazy-import to avoid SSR crash — freighter-api accesses window at module level
+    import("@stellar/freighter-api").then(({ isConnected, getPublicKey, getNetworkDetails }) => {
+      isConnected().then(async (ok) => {
+        if (ok) {
+          const [pub, net] = await Promise.all([getPublicKey(), getNetworkDetails()]);
+          setAddress(pub);
+          setNetwork(net.network);
+        }
+      });
     });
   }, []);
 
   const connect = useCallback(async () => {
     setConnecting(true);
     try {
+      const { requestAccess, getNetworkDetails } = await import("@stellar/freighter-api");
       const pub = await requestAccess();
       const net = await getNetworkDetails();
       setAddress(pub);
