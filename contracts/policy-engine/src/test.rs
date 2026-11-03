@@ -15,7 +15,12 @@ fn setup() -> (Env, PolicyEngineClient<'static>, Address) {
     (env, client, admin)
 }
 
-fn make_policy(env: &Env, max_per_tx: i128, max_per_period: i128, period_ledgers: u32) -> SpendPolicy {
+fn make_policy(
+    env: &Env,
+    max_per_tx: i128,
+    max_per_period: i128,
+    period_ledgers: u32,
+) -> SpendPolicy {
     SpendPolicy {
         max_per_tx,
         max_per_period,

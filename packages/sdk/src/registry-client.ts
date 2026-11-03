@@ -1,6 +1,6 @@
 import {
   Contract,
-  SorobanRpc,
+  rpc,
   TransactionBuilder,
   BASE_FEE,
   Keypair,
@@ -11,14 +11,14 @@ import type { NetworkConfig } from "./network.js";
 import type { AgentRecord } from "./types.js";
 
 export class RegistryClient {
-  private server: SorobanRpc.Server;
+  private server: rpc.Server;
   private contract: Contract;
 
   constructor(
     private contractId: string,
     private network: NetworkConfig,
   ) {
-    this.server = new SorobanRpc.Server(network.rpcUrl);
+    this.server = new rpc.Server(network.rpcUrl);
     this.contract = new Contract(contractId);
   }
 
@@ -46,10 +46,10 @@ export class RegistryClient {
       .build();
 
     const sim = await this.server.simulateTransaction(tx);
-    if (!SorobanRpc.Api.isSimulationSuccess(sim)) {
+    if (!rpc.Api.isSimulationSuccess(sim)) {
       throw new Error(`Simulation failed: ${JSON.stringify(sim)}`);
     }
-    const prepared = SorobanRpc.assembleTransaction(tx, sim).build();
+    const prepared = rpc.assembleTransaction(tx, sim).build();
     prepared.sign(ownerKeypair);
     const result = await this.server.sendTransaction(prepared);
     return result.hash;

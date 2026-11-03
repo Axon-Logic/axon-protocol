@@ -7,7 +7,10 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-soroban-sdk = { version = "21.0.0", features = ["testutils"] }
+# NOTE: do not enable "testutils" here — that feature is rejected on the wasm
+# target and would break every `cargo build --target wasm32-unknown-unknown`.
+# Each contract opts in to it from its own [dev-dependencies] instead.
+soroban-sdk = "21.0.0"
 
 [profile.release]
 opt-level = "z"

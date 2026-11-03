@@ -1,18 +1,17 @@
 import { NextResponse } from "next/server";
+import { getDeployedAgents } from "@/lib/chain";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const owner = searchParams.get("owner");
-  if (!owner) return NextResponse.json({ error: "owner required" }, { status: 400 });
+export const dynamic = "force-dynamic";
 
+// GET /api/agents — agents from the deployed registry, read live from chain.
+export async function GET() {
   try {
-    const res = await fetch(`${API_URL}/agents?owner=${encodeURIComponent(owner)}`);
-    const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
+    const agents = await getDeployedAgents();
+    return NextResponse.json(agents.map((agent) => ({ address: agent.address, record: agent })));
   } catch (err) {
-    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ error: (err as Error).message }, { status: 502 });
   }
 }
 

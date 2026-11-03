@@ -2,14 +2,23 @@
 use super::*;
 use soroban_sdk::{testutils::Address as _, token, Env};
 
-fn setup() -> (Env, AgentVaultClient<'static>, Address, Address, Address, Address) {
+fn setup() -> (
+    Env,
+    AgentVaultClient<'static>,
+    Address,
+    Address,
+    Address,
+    Address,
+) {
     let env = Env::default();
     env.mock_all_auths();
 
     let owner = Address::generate(&env);
     let agent = Address::generate(&env);
     let policy_engine = Address::generate(&env);
-    let token_id = env.register_stellar_asset_contract_v2(owner.clone()).address();
+    let token_id = env
+        .register_stellar_asset_contract_v2(owner.clone())
+        .address();
 
     let contract_id = env.register_contract(None, AgentVault);
     let client = AgentVaultClient::new(&env, &contract_id);
@@ -18,7 +27,13 @@ fn setup() -> (Env, AgentVaultClient<'static>, Address, Address, Address, Addres
     (env, client, owner, agent, policy_engine, token_id)
 }
 
-fn mint_and_deposit(env: &Env, client: &AgentVaultClient, owner: &Address, token_id: &Address, amount: i128) {
+fn mint_and_deposit(
+    env: &Env,
+    client: &AgentVaultClient,
+    owner: &Address,
+    token_id: &Address,
+    amount: i128,
+) {
     token::StellarAssetClient::new(env, token_id).mint(owner, &amount);
     client.deposit(owner, &amount);
 }
@@ -32,6 +47,7 @@ fn test_initialize() {
 #[should_panic(expected = "already initialized")]
 fn test_double_initialize_panics() {
     let (env, client, owner, agent, policy_engine, token_id) = setup();
+    let _ = &env;
     client.initialize(&owner, &agent, &policy_engine, &token_id);
 }
 
@@ -66,33 +82,34 @@ fn test_withdraw_reduces_balance() {
     let (env, client, owner, _, _, token_id) = setup();
     mint_and_deposit(&env, &client, &owner, &token_id, 1000);
 
-    client.withdraw(&owner, &400);
+    client.withdraw(&400);
     assert_eq!(client.balance(), 600);
 }
 
 #[test]
 #[should_panic(expected = "insufficient balance")]
 fn test_withdraw_exceeds_balance_panics() {
-    let (_, client, owner, _, _, _) = setup();
-    client.withdraw(&owner, &1);
+    let (_, client, _owner, _, _, _) = setup();
+    client.withdraw(&1);
 }
 
 #[test]
 fn test_spend_reduces_balance() {
-    let (env, client, owner, agent, _, token_id) = setup();
+    let (env, client, owner, _agent, _, token_id) = setup();
     mint_and_deposit(&env, &client, &owner, &token_id, 1000);
 
     let recipient = Address::generate(&env);
-    client.spend(&agent, &recipient, &300, &Symbol::new(&env, "pay"));
+    // The agent is resolved from the stored config, not passed in.
+    client.spend(&recipient, &300, &Symbol::new(&env, "pay"));
     assert_eq!(client.balance(), 700);
 }
 
 #[test]
 #[should_panic(expected = "insufficient balance")]
 fn test_spend_exceeds_balance_panics() {
-    let (env, client, owner, agent, _, token_id) = setup();
+    let (env, client, owner, _agent, _, token_id) = setup();
     mint_and_deposit(&env, &client, &owner, &token_id, 100);
 
     let recipient = Address::generate(&env);
-    client.spend(&agent, &recipient, &200, &Symbol::new(&env, "pay"));
+    client.spend(&recipient, &200, &Symbol::new(&env, "pay"));
 }

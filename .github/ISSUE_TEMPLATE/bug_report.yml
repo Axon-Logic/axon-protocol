@@ -1,0 +1,92 @@
+name: Bug report
+description: Something isn't working as expected
+title: "bug: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please search existing issues first.
+        **Do not paste secret keys, `.env` contents, or funded account seeds.**
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what went wrong.
+      placeholder: When I call `vault.spend(...)` the transaction fails with...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Run `npm run deploy:testnet`
+        2. Run `npm run test:e2e`
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: What did you expect to happen instead?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      description: Which part of the monorepo does this relate to?
+      multiple: true
+      options:
+        - contracts/agent-vault
+        - contracts/policy-engine
+        - contracts/registry
+        - packages/sdk
+        - packages/api
+        - packages/agent-runtime
+        - packages/dashboard
+        - tooling / CI / deployment
+    validations:
+      required: true
+
+  - type: dropdown
+    id: network
+    attributes:
+      label: Network
+      options:
+        - Local / unit tests only
+        - Stellar Testnet
+        - Stellar Mainnet
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Node.js, Rust, Stellar CLI, and any relevant package versions.
+      placeholder: Node v20.11.1, rustc 1.79.0, stellar 21.2.0
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: macOS 14.4 / Ubuntu 22.04 / Windows 11 (WSL2)
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or error output
+      description: Command output, transaction hash, or contract error code.
+      render: shell
+    validations:
+      required: false

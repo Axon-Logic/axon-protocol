@@ -73,26 +73,26 @@ git clone https://github.com/axonlogic/axon-protocol
 cd axon-protocol
 npm install
 
-# 2. Configure environment
-cp .env.example .env
-# Fill in ADMIN_SECRET_KEY and contract IDs after deployment
-
-# 3. Build contracts
-cd contracts
-cargo build --release --target wasm32-unknown-unknown
-
-# 4. Deploy contracts (testnet)
-bash contracts/deploy.sh
-
-# 5. Build TypeScript packages
+# 2. Build contracts (wasm) and TypeScript packages
 npm run build
 
-# 6. Start API gateway
+# 3. Deploy and initialize on Testnet
+#    Generates + Friendbot-funds identities and writes contract IDs to .env
+npm run deploy:testnet
+
+# 4. Verify the deployment with a real policy-checked spend
+npm run test:e2e
+
+# 5. Start API gateway
 npm run dev:api
 
-# 7. Start agent runtime
+# 6. Start agent runtime
 npm run dev:runtime
 ```
+
+> `npm run deploy:testnet` compiles in the required order and initializes all
+> three contracts (vault → policy engine link, vault policy, agent registry
+> entry). Re-running it deploys a fresh set of contracts.
 
 ---
 

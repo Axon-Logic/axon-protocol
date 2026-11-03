@@ -10,6 +10,7 @@ out/
 # Soroban / Rust
 target/
 contracts/*/target/
+test_snapshots/
 
 # Logs
 *.log
