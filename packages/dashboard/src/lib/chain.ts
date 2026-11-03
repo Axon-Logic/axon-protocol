@@ -214,3 +214,52 @@ export async function getDeployedAgents(): Promise<AgentView[]> {
   if (!registryId || !agentAddress) return [];
   return [await getAgent(registryId, agentAddress)];
 }
+
+export type VaultSpend = {
+  txHash: string;
+  ledger: number;
+  closedAt: string;
+  to: string;
+  amount: string;
+  memo: string;
+};
+
+// Soroban RPC discards events older than its retention window, so scans start
+// inside it rather than at genesis.
+const EVENT_WINDOW_LEDGERS = 9_000;
+
+/**
+ * Spend events emitted by the vault, newest first.
+ *
+ * The contract publishes `("spend",) -> (to, amount, memo)` on every successful
+ * spend, so this is the on-chain spend ledger for the vault.
+ */
+export async function getVaultSpends(vaultId: string, limit = 25): Promise<VaultSpend[]> {
+  if (!vaultId) return [];
+
+  const { rpcUrl } = getDeployment();
+  const server = new rpc.Server(rpcUrl);
+  const latest = await server.getLatestLedger();
+
+  const { events } = await server.getEvents({
+    startLedger: Math.max(1, latest.sequence - EVENT_WINDOW_LEDGERS),
+    filters: [{ type: "contract", contractIds: [vaultId] }],
+    limit: 200,
+  });
+
+  return events
+    .filter((event) => event.topic.length > 0 && scValToNative(event.topic[0]) === "spend")
+    .map((event) => {
+      const [to, amount, memo] = scValToNative(event.value) as [string, bigint, string];
+      return {
+        txHash: event.txHash,
+        ledger: event.ledger,
+        closedAt: event.ledgerClosedAt,
+        to: String(to),
+        amount: BigInt(amount).toString(),
+        memo: String(memo),
+      };
+    })
+    .sort((a, b) => b.ledger - a.ledger)
+    .slice(0, limit);
+}
