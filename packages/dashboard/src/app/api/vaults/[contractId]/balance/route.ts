@@ -1,16 +1,17 @@
 import { NextResponse } from "next/server";
+import { getVaultBalance } from "@/lib/chain";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+// Read straight from Soroban RPC so the value is never cached or stale.
+export const dynamic = "force-dynamic";
 
 export async function GET(
   _req: Request,
   { params }: { params: { contractId: string } },
 ) {
   try {
-    const res = await fetch(`${API_URL}/vaults/${params.contractId}/balance`);
-    const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
+    const balance = await getVaultBalance(params.contractId);
+    return NextResponse.json({ balance });
   } catch (err) {
-    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ error: (err as Error).message }, { status: 502 });
   }
 }

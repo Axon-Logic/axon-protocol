@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useWallet } from "@/context/WalletContext";
 import AgentCard from "@/components/AgentCard";
 import StatCard from "@/components/StatCard";
 import SkeletonCard from "@/components/SkeletonCard";
@@ -9,31 +8,25 @@ import type { AgentRecord } from "@axon-protocol/sdk";
 type AgentEntry = { address: string; record: AgentRecord };
 
 export default function DashboardPage() {
-  const { connected, address } = useWallet();
   const [agents, setAgents] = useState<AgentEntry[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!connected) return;
     setLoading(true);
-    // Fetch agents owned by connected wallet from the API
-    fetch(`/api/agents?owner=${address}`)
-      .then((r) => r.json())
-      .then((data: AgentEntry[]) => setAgents(data))
-      .catch(console.error)
+    fetch("/api/agents")
+      .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error ?? "Failed to load agents");
+        return data as AgentEntry[];
+      })
+      .then((data) => {
+        setAgents(data);
+        setError(null);
+      })
+      .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [connected, address]);
-
-  if (!connected) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center">
-        <h1 className="text-3xl font-bold">Axon Protocol</h1>
-        <p className="text-gray-400 max-w-md">
-          Connect your Freighter wallet to manage your AI agents and vaults.
-        </p>
-      </div>
-    );
-  }
+  }, []);
 
   const active = agents.filter((a) => a.record.active).length;
 
@@ -41,7 +34,9 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-gray-400 text-sm mt-1">Your registered agents and vaults</p>
+        <p className="text-gray-400 text-sm mt-1">
+          Live on-chain agents and vaults from the deployed registry
+        </p>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
@@ -58,8 +53,19 @@ export default function DashboardPage() {
               <SkeletonCard key={i} />
             ))}
           </div>
+        ) : error ? (
+          <p className="text-red-400 text-sm">
+            {error}
+            <span className="block text-gray-500 mt-1">
+              Run <code className="text-gray-300">npm run deploy:testnet</code> to populate .env with
+              contract IDs.
+            </span>
+          </p>
         ) : agents.length === 0 ? (
-          <p className="text-gray-500 text-sm">No agents registered yet.</p>
+          <p className="text-gray-500 text-sm">
+            No agent configured. Run <code className="text-gray-300">npm run deploy:testnet</code> to
+            register one.
+          </p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {agents.map((a) => (
