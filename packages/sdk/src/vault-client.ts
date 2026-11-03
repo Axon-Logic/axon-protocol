@@ -1,25 +1,25 @@
 import {
   Contract,
-  SorobanRpc,
+  rpc,
   TransactionBuilder,
-  Networks,
   BASE_FEE,
   Keypair,
   nativeToScVal,
+  scValToNative,
   Address,
 } from "@stellar/stellar-sdk";
 import type { NetworkConfig } from "./network.js";
 import type { SpendParams, VaultConfig } from "./types.js";
 
 export class AgentVaultClient {
-  private server: SorobanRpc.Server;
+  private server: rpc.Server;
   private contract: Contract;
 
   constructor(
     private contractId: string,
     private network: NetworkConfig,
   ) {
-    this.server = new SorobanRpc.Server(network.rpcUrl);
+    this.server = new rpc.Server(network.rpcUrl);
     this.contract = new Contract(contractId);
   }
 
@@ -38,8 +38,12 @@ export class AgentVaultClient {
     ]);
   }
 
-  async balance(): Promise<bigint> {
-    const account = await this.server.getAccount("GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN");
+  /**
+   * Read the vault balance. Simulation needs a funded source account, so pass
+   * any account that exists on the target network (e.g. the vault owner).
+   */
+  async balance(sourceAccount = "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN"): Promise<bigint> {
+    const account = await this.server.getAccount(sourceAccount);
     const tx = new TransactionBuilder(account, {
       fee: BASE_FEE,
       networkPassphrase: this.network.networkPassphrase,
@@ -49,8 +53,10 @@ export class AgentVaultClient {
       .build();
 
     const result = await this.server.simulateTransaction(tx);
-    if (SorobanRpc.Api.isSimulationSuccess(result) && result.result) {
-      return BigInt(result.result.retval.value()?.toString() ?? "0");
+    if (rpc.Api.isSimulationSuccess(result) && result.result) {
+      // scValToNative decodes the i128 return value; `.value()` on an ScVal
+      // returns the raw Int128 parts, not a numeric value.
+      return BigInt(scValToNative(result.result.retval));
     }
     return 0n;
   }
@@ -71,11 +77,11 @@ export class AgentVaultClient {
       .build();
 
     const simResult = await this.server.simulateTransaction(tx);
-    if (!SorobanRpc.Api.isSimulationSuccess(simResult)) {
+    if (!rpc.Api.isSimulationSuccess(simResult)) {
       throw new Error(`Simulation failed: ${JSON.stringify(simResult)}`);
     }
 
-    const prepared = SorobanRpc.assembleTransaction(tx, simResult).build();
+    const prepared = rpc.assembleTransaction(tx, simResult).build();
     prepared.sign(signer);
 
     const sendResult = await this.server.sendTransaction(prepared);

@@ -37,7 +37,12 @@ impl AgentVault {
         );
         env.storage().instance().set(
             &DataKey::Config,
-            &VaultConfig { owner, agent, policy_engine, token },
+            &VaultConfig {
+                owner,
+                agent,
+                policy_engine,
+                token,
+            },
         );
     }
 
@@ -45,10 +50,17 @@ impl AgentVault {
     pub fn deposit(env: Env, from: Address, amount: i128) {
         from.require_auth();
         let cfg: VaultConfig = env.storage().instance().get(&DataKey::Config).unwrap();
-        token::Client::new(&env, &cfg.token).transfer(&from, &env.current_contract_address(), &amount);
+        token::Client::new(&env, &cfg.token).transfer(
+            &from,
+            &env.current_contract_address(),
+            &amount,
+        );
         let bal: i128 = env.storage().instance().get(&DataKey::Balance).unwrap_or(0);
-        env.storage().instance().set(&DataKey::Balance, &(bal + amount));
-        env.events().publish((Symbol::new(&env, "deposit"),), (from, amount));
+        env.storage()
+            .instance()
+            .set(&DataKey::Balance, &(bal + amount));
+        env.events()
+            .publish((Symbol::new(&env, "deposit"),), (from, amount));
     }
 
     /// Spend from vault — agent calls this; policy engine validates.
@@ -64,9 +76,16 @@ impl AgentVault {
 
         let bal: i128 = env.storage().instance().get(&DataKey::Balance).unwrap_or(0);
         assert!(bal >= amount, "insufficient balance");
-        token::Client::new(&env, &cfg.token).transfer(&env.current_contract_address(), &to, &amount);
-        env.storage().instance().set(&DataKey::Balance, &(bal - amount));
-        env.events().publish((Symbol::new(&env, "spend"),), (to, amount, memo));
+        token::Client::new(&env, &cfg.token).transfer(
+            &env.current_contract_address(),
+            &to,
+            &amount,
+        );
+        env.storage()
+            .instance()
+            .set(&DataKey::Balance, &(bal - amount));
+        env.events()
+            .publish((Symbol::new(&env, "spend"),), (to, amount, memo));
     }
 
     /// Owner withdraws remaining funds.
@@ -75,8 +94,14 @@ impl AgentVault {
         cfg.owner.require_auth();
         let bal: i128 = env.storage().instance().get(&DataKey::Balance).unwrap_or(0);
         assert!(bal >= amount, "insufficient balance");
-        token::Client::new(&env, &cfg.token).transfer(&env.current_contract_address(), &cfg.owner, &amount);
-        env.storage().instance().set(&DataKey::Balance, &(bal - amount));
+        token::Client::new(&env, &cfg.token).transfer(
+            &env.current_contract_address(),
+            &cfg.owner,
+            &amount,
+        );
+        env.storage()
+            .instance()
+            .set(&DataKey::Balance, &(bal - amount));
     }
 
     pub fn balance(env: Env) -> i128 {
@@ -90,8 +115,11 @@ impl AgentVault {
 
 #[cfg(not(test))]
 mod policy_engine {
+    // Path is relative to this crate's manifest dir (contracts/agent-vault).
+    // The workspace shares a single target dir at contracts/target, and the
+    // policy-engine wasm must be built first — see scripts/build-contracts.sh.
     soroban_sdk::contractimport!(
-        file = "../policy-engine/target/wasm32-unknown-unknown/release/policy_engine.wasm"
+        file = "../target/wasm32-unknown-unknown/release/policy_engine.wasm"
     );
 }
 

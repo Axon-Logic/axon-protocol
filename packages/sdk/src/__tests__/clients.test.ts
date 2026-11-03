@@ -12,7 +12,7 @@ jest.mock("@stellar/stellar-sdk", () => {
   };
   return {
     Contract: jest.fn().mockImplementation(() => ({ call: jest.fn(() => ({})) })),
-    SorobanRpc: {
+    rpc: {
       Server: jest.fn().mockImplementation(() => ({
         getAccount: jest.fn().mockResolvedValue({ id: "GABC", sequence: "1" }),
         simulateTransaction: jest.fn().mockResolvedValue({
@@ -34,12 +34,13 @@ jest.mock("@stellar/stellar-sdk", () => {
       })),
     },
     nativeToScVal: jest.fn(() => ({})),
+    scValToNative: jest.fn(() => 1000n),
     Address: jest.fn().mockImplementation(() => ({ toScVal: jest.fn(() => ({})) })),
   };
 });
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { SorobanRpc, Keypair } = require("@stellar/stellar-sdk");
+const { rpc, Keypair } = require("@stellar/stellar-sdk");
 
 const network = NETWORKS.testnet;
 const CONTRACT_ID = "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM";
@@ -74,7 +75,7 @@ describe("AgentVaultClient", () => {
   });
 
   it("throws when simulation fails", async () => {
-    (SorobanRpc.Api.isSimulationSuccess as jest.Mock).mockReturnValueOnce(false);
+    (rpc.Api.isSimulationSuccess as jest.Mock).mockReturnValueOnce(false);
     const signer = Keypair.fromSecret("S...");
     await expect(client.deposit(signer, 100n)).rejects.toThrow("Simulation failed");
   });
