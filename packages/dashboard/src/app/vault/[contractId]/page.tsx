@@ -52,23 +52,30 @@ export default function VaultPage() {
           fetch(`/api/vaults/${contractId}/spends`),
         ]);
 
-        const balanceBody = await balanceRes.json();
-        if (!balanceRes.ok) {
-          throw new Error(balanceBody.error ?? "Failed to read vault");
-        }
-
-        const deploymentBody = await deploymentRes.json();
-        const configBody = await configRes.json();
-        const policyBody = await policyRes.json();
-        const spendsBody = await spendsRes.json();
+        const [deploymentBody, balanceBody, configBody, policyBody, spendsBody] = await Promise.all([
+          deploymentRes.json(),
+          balanceRes.json(),
+          configRes.json(),
+          policyRes.json(),
+          spendsRes.json(),
+        ]);
 
         if (cancelled) return;
-        setBalance(balanceBody.balance);
+        // Each read fails independently: one bad RPC call must not blank the
+        // page and hide the explorer link and spend history.
+        const failures = [
+          !balanceRes.ok && (balanceBody.error ?? "balance"),
+          !configRes.ok && (configBody.error ?? "config"),
+          !policyRes.ok && (policyBody.error ?? "policy"),
+          !spendsRes.ok && (spendsBody.error ?? "spend history"),
+        ].filter(Boolean) as string[];
+
+        setBalance(balanceRes.ok ? (balanceBody.balance as string) : null);
         setConfig(configRes.ok ? (configBody as VaultConfig) : null);
         setPolicy(policyRes.ok ? (policyBody as VaultPolicy) : null);
         setDeployment(deploymentRes.ok ? (deploymentBody as Deployment) : null);
         setSpends(spendsRes.ok ? ((spendsBody.spends as VaultSpend[]) ?? []) : null);
-        setError(null);
+        setError(failures.length > 0 ? failures.join("; ") : null);
       } catch (err) {
         if (!cancelled) setError((err as Error).message);
       } finally {
@@ -83,8 +90,6 @@ export default function VaultPage() {
   }, [contractId]);
 
   if (loading) return <p className="text-gray-500 text-sm">Loading vault…</p>;
-  if (error) return <p className="text-red-400 text-sm">Vault unavailable: {error}</p>;
-  if (balance === null) return <p className="text-red-400 text-sm">Vault not found.</p>;
 
   const explorer = deployment?.explorer;
   const vaultUrl = explorer ? `${explorer}/contract/${contractId}` : null;
@@ -103,6 +108,12 @@ export default function VaultPage() {
         )}
       </div>
 
+      {error && (
+        <p className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded px-3 py-2">
+          Some chain reads failed: {error}
+        </p>
+      )}
+
       <div className="space-y-1">
         <p className="font-mono text-xs text-gray-400 break-all">{contractId}</p>
         {vaultUrl && (
@@ -118,7 +129,11 @@ export default function VaultPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <StatCard label="Balance" value={`${xlm(balance)} XLM`} sub="live on-chain balance" />
+        <StatCard
+          label="Balance"
+          value={balance === null ? "—" : `${xlm(balance)} XLM`}
+          sub="live on-chain balance"
+        />
         <StatCard
           label="Agent"
           value={config ? `${config.agent.slice(0, 8)}…` : "—"}
